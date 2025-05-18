@@ -1,3 +1,4 @@
+#pragma once
 
 template <typename T>
 struct NodeAVL {
@@ -6,7 +7,7 @@ struct NodeAVL {
     NodeAVL* left; 
     NodeAVL* right;        
     NodeAVL() : left(nullptr), right(nullptr), height(0) {}   
-    NodeAVL(T value) : data(value), left(nullptr), right(nullptr), height(0) {}   
+    explicit NodeAVL(T value) : data(value), left(nullptr), right(nullptr), height(0) {}
 
     void killSelf(){
         if(left != nullptr) left->killSelf();
