@@ -1,9 +1,10 @@
 # Estructura de datos para gestionar eficientemente diccionarios
 
 ## Integrantes: 
-- 1 ____   _____
-- 2 ____   _____
-- 3 ____   _____
+- 1 Dylan Cabezas
+- 2 Salvador Donayre
+- 3 Miranda Salazar
+- 4 Juan Paredes
 
 ## Instrucciones 
 
