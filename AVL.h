@@ -358,15 +358,15 @@ private:
         return y;
     }
 
-    void displayPretty(Node* root, const string& prefix = "", bool isLeft = true) { //Muestra el arbol visualmente atractivo
-        if (!root) return;
+    void displayPretty(Node* node, const string& prefix = "", bool isLeft = true) { //Muestra el arbol visualmente atractivo
+        if (!node) return;
 
-        cout << prefix;
-        cout << (isLeft ? "L--- " : "R--- ");
-        cout << root->data << endl;
+        std::cout << prefix;
+        std::cout << (isLeft ? "├──" : "└──" );
+        std::cout << node->data << std::endl;
 
-        displayPretty(root->left, prefix + (isLeft ? "|    " : "     "), true);
-        displayPretty(root->right, prefix + (isLeft ? "|    " : "     "), false);
+        displayPretty( node->left, prefix + (isLeft ? "│   " : "    "), true);
+        displayPretty( node->right, prefix + (isLeft ? "│   " : "    "), false);
 
     }
 };
