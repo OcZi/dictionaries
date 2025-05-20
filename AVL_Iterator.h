@@ -46,34 +46,53 @@ private:
     template<typename Fun>
     void breadth_first_search(Node *node, Fun func) {
         if (!node) return;
-        std::queue<Node *> queue;
-        queue.push(node);
+        std::queue<Node *> q;
+        q.push(node);
 
-        while (!queue.empty()) {
-            auto elem = queue.front();
-            queue.pop();
+        while (!q.empty()) {
+            auto elem = q.front();
+            q.pop();
             func(elem);
 
-            if (elem->left) queue.push(elem->left);
-            if (elem->right) queue.push(elem->right);
+            if (elem->left) q.push(elem->left);
+            if (elem->right) q.push(elem->right);
         }
     }
 
-    void push_queue(Node* n) {
-        queue.push(n);
+    static void push_queue(Node* n, std::queue<Node*>& q) {
+        q.push(n);
     }
 
     void _process() {
+
+        while (!queue.empty()) {
+            queue.pop();
+        }
+
+        if (!current) return;
+
         switch (type) {
             case InOrder:
-                _inorder(current, push_queue);
+                _inorder(current, [this](Node* n){ push_queue(n, queue); });
+                break;
             case PostOrder:
-                _postorder(current, push_queue);
+                _postorder(current, [this](Node* n){ push_queue(n, queue); });
+                break;
             case PreOrder:
-                _preorder(current, push_queue);
+                _preorder(current, [this](Node* n){ push_queue(n, queue); });
+                break;
             case BFS:
-                breadth_first_search(current, push_queue);
+                breadth_first_search(current, [this](Node* n){ push_queue(n, queue); });
+                break;
         }
+
+        if (!queue.empty()) {
+            current = queue.front();
+            queue.pop();
+        } else {
+            current = nullptr;
+        }
+
     }
 
 public:
@@ -86,24 +105,29 @@ public:
 
     AVLIterator<T> &operator =(const AVLIterator<T> &other) {
         if (this != &other) {
-            std::swap(current, other.current);
-            std::swap(type, other.type);
-            _process();
+            current = other.current;
+            queue = other.queue;
+            type = other.type;
         }
         return *this;
     }
 
-    bool operator !=(AVLIterator<T> other) {
-        return current != other;
+    bool operator !=(AVLIterator<T> other) const {
+        if (current == nullptr && other.current == nullptr) return false;
+        return current != other.current;
     }
 
     AVLIterator<T> &operator++() {
-        current = queue.front();
-        queue.pop();
-        return *this;
+       if (queue.empty()) current = nullptr;
+       else {
+           current = queue.front();
+           queue.pop();
+       }
+       return *this;
     }
 
     T operator*() {
+        if (!current) throw std::runtime_error("Dereferencing null iterator");
         return current->data;
     }
 };

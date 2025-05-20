@@ -8,29 +8,37 @@ using namespace std;
 
 template<typename T, typename Node = NodeAVL<T> >
 class AVLTree {
+
+    Node *root;
+    int nodes;
+
 public:
     typedef AVLIterator<T> iterator;
+
+    Node* getRoot() const { return root; }
 
     iterator begin(AVLIterator<int>::Type type) {
         return iterator(root, type);
     }
 
     iterator end() {
-        auto n = root;
-        while (n->right != nullptr) {
-            n = n->right;
-        }
-        return iterator(n);
+        return iterator(nullptr);
     }
 
-    Node *_right_rota(Node *x) {
-        auto y = x->left;
-        if (!y) return x;
+    static T minValue(Node* node) {
+        if (!node) throw std::runtime_error("Cannot get min value of nullptr");
+        while (node->left != nullptr) {
+            node = node->left;
+        }
+        return node->data;
+    }
 
-        auto a = y->right;
-        y->right = x;
-        x->left = a;
-        return y;
+    static T maxValue(Node* node) {
+        if (!node) throw std::runtime_error("Cannot get max value of nullptr");
+        while (node->right != nullptr) {
+            node = node->right;
+        }
+        return node->data;
     }
 
     Node *_insert(Node *n, T value) {
@@ -38,61 +46,54 @@ public:
             return new Node(value);
         }
 
-        auto d = n->data;
-        if (d > value) {
+        if (value < n->data) {
             n->left = _insert(n->left, value);
-        } else if (d < value) {
+        } else if (value > n->data) {
             n->right = _insert(n->right, value);
         } else {
-            return nullptr;
+            return n; // valor duplicado
         }
+
         updateHeight(n);
         return balance(n);
     }
 
-    Node *_remove(Node *n, T value) {
-        if (!n) {
-            return n;
-        }
+    Node* _remove(Node* node, T value) {
+        if (!node) return nullptr;
 
-        if (value < n->data) {
-            n->left = _remove(n->left, value);
-        } else if (value > n->data) {
-            n->right = _remove(n->right, value);
+        if (value < node->data) {
+            node->left = _remove(node->left, value);
+        } else if (value > node->data) {
+            node->right = _remove(node->right, value);
         } else {
-            if (!n->left and !n->right) {
-                // No hijos
-                delete n;
-                return nullptr;
+            if (!node->left || !node->right) {
+                // Case 1: 0 or 1 child
+                Node* temp = node->left ? node->left : node->right;
+                delete node;
+                return temp;
+            } else { //
+                // Case 2: 2 children -> Se trabaja con el predecesor en este caso
+                Node* predecessor = node->left;
+                while (predecessor->right) {
+                    predecessor = predecessor->right;
+                }
+                node->data = predecessor->data;
+                node->left = _remove(node->left, predecessor->data);
             }
-
-            if (!n->left || !n->right) {
-                // Un solo hijo
-                auto aux = n->left ? n->left : n->right;
-                delete n;
-                return aux;
-            }
-
-            auto s = minValue(n->right);
-            n->data = s;
-            n->right = _remove(n->right, s);
         }
 
-        updateHeight(n);
-        return balance(n);
+        // Update height and balance
+        updateHeight(node);
+        return balance(node);
     }
 
-private:
-    Node *root;
-    int nodes;
 
-public:
     AVLTree() : root(nullptr), nodes(0) {
     }
 
     void insert(T value) {
         root = _insert(root, value);
-        // ++nodes;
+        ++nodes;
     }
 
     bool find(T value) {
@@ -114,10 +115,7 @@ public:
     string getInOrder() {
         std::string base;
         _inorder(root, [&](Node* node) {
-            if (!base.empty()) {
-                base.append(", ");
-            }
-            base.append(to_string(node->data));
+            base.append(to_string(node->data) + " ");
         });
 
         return base;
@@ -126,10 +124,7 @@ public:
     string getPreOrder() {
         std::string base;
         _preorder(root, [&](Node* node) {
-            if (!base.empty()) {
-                base.append(", ");
-            }
-            base.append(to_string(node->data));
+            base.append(to_string(node->data) + " ");
         });
 
         return base;
@@ -138,46 +133,42 @@ public:
     string getPostOrder() {
         std::string base;
         _postorder(root, [&](Node* node) {
-            if (!base.empty()) {
-                base.append(", ");
-            }
-            base.append(to_string(node->data));
+            base.append(to_string(node->data) + " ");
         });
 
         return base;
     }
 
-    int height() {
-        return root->height;
+    [[nodiscard]] int height() const {
+        return height_of(root);
     }
 
+
     T minValue() {
-        Node *curr = root;
-        while (curr->left != nullptr) {
-            curr = curr->left;
-        }
-        return curr;
+        return minValue(root);
     }
 
     T maxValue() {
-        Node *curr = root;
-        while (curr->right != nullptr) {
-            curr = curr->right;
-        }
-        return curr;
+        return maxValue(root);
     }
+
 
     bool isBalanced() {
+        if (!root) {
+            return true;
+        }
         auto f = balancingFactor(root);
-        return f == 1 or f == -1;
+        return f >= -1 && f <= 1;
     }
 
-    int size() {
+
+    static int size() {
         return 0;
     }
 
     void remove(T value) {
-        _remove(root, value);
+        root = _remove(root, value);
+        --nodes;
     }
 
 
@@ -226,10 +217,17 @@ public:
     }
 
     void clear() {
-        root->killSelf();
+        if (this->root != nullptr) {
+            this->root->killSelf();
+            this->root = nullptr;
+            this->nodes = 0;
+        }
     }
 
-    void displayPretty(); //Muestra el arbol visualmente atractivo
+    void displayPretty() {
+        displayPretty(root);
+    }
+
 
     ~AVLTree() {
         if (this->root != nullptr) {
@@ -237,7 +235,7 @@ public:
         }
     }
 
-    int height_of(Node *n) {
+    static int height_of(Node *n) {
         return n ? n->height : -1;
     }
 
@@ -295,43 +293,50 @@ private:
 
     void updateHeight(Node *n) {
         if (n == nullptr) return;
-        auto l = n->left, r = n->right;
-        n->height = 1 + max(l ? l->height : -1, r ? r->height : -1);
+        n->height = 1 + std::max(height_of(n->left), height_of(n->right));
     }
 
-    void balance(Node *&n) {
+    Node* balance(Node *&n) {
+        if (!n) {
+            throw std::runtime_error("Balance func: Node is null");
+        }
+        updateHeight(n);
+
         auto factor = balancingFactor(n);
+        // Left
         if (factor > 1) {
-            // Desbalanceado a la izquierda
+            // LL
             if (balancingFactor(n->left) >= 0) {
-                // LL
-                n = right_rota(n);
-            } else {
-                // LR
-                n->right = left_rota(n->right);
-                n = right_rota(n);
+                n = right_rotate(n);
+            }
+            // LR
+            else { // balancingFactor(n->left) < 0
+                n->left = left_rotate(n->left);
+                n = right_rotate(n);
             }
         }
-
-        if (factor < -1) {
-            // Desbalanceado a la derecha
-            if (balancingFactor(n->left) >= 0) {
-                // RR
-                n = left_rota(n);
-            } else {
-                // RL
-                n->right = right_rota(n->left);
-                n = left_rota(n);
+        // Right
+        else if (factor < -1) {
+            // RR
+            if (balancingFactor(n->right) <= 0) {
+                n = left_rotate(n);
+            }
+            // RL
+            else { // balancingFactor(n->right) > 0
+                n->right = right_rotate(n->right);
+                n = left_rotate(n);
             }
         }
+        return n;
     }
 
-    Node *left_rota(Node *&x) {
-        auto y = x->right;
-        if (!y) return x;
+    Node *left_rotate(Node *&x) {
+        if (!x || !x->right) return x;
 
+        auto y = x->right;
         auto a = y->left;
-        y->left = x;
+
+        y ->left = x;
         x->right = a;
 
         updateHeight(x);
@@ -340,10 +345,9 @@ private:
         return y;
     }
 
-    Node *right_rota(Node *&x) {
+    Node *right_rotate(Node *&x) {
+        if (!x || !x->left) return x;
         auto y = x->left;
-        if (!y) return x;
-
         auto a = y->right;
         y->right = x;
         x->left = a;
@@ -352,6 +356,18 @@ private:
         updateHeight(y);
 
         return y;
+    }
+
+    void displayPretty(Node* root, const string& prefix = "", bool isLeft = true) { //Muestra el arbol visualmente atractivo
+        if (!root) return;
+
+        cout << prefix;
+        cout << (isLeft ? "L--- " : "R--- ");
+        cout << root->data << endl;
+
+        displayPretty(root->left, prefix + (isLeft ? "|    " : "     "), true);
+        displayPretty(root->right, prefix + (isLeft ? "|    " : "     "), false);
+
     }
 };
 
